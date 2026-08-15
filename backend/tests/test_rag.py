@@ -54,14 +54,20 @@ class TestEmbeddings:
     def test_embedding_dimensions(self):
         service = EmbeddingService()
         vec = service.embed_text("Testing embeddings")
-        assert len(vec) == 384
+        # NVIDIA Nemotron is 2048 dims, MiniLM is 384 dims
+        assert len(vec) in [384, 1024, 2048]
 
 
 class TestVectorStoreAndMultiplePDFs:
     def test_metadata_filtering_by_doc_name(self):
-        vec_service = VectorService(collection_name="test_multi_doc_collection")
-        
-        # Ingest chunks from Doc A and Doc B
+        vec_service = VectorService(collection_name="test_multi_doc_nemotron_col")
+        # Clean collection for test
+        try:
+            vec_service.client.delete_collection(name="test_multi_doc_nemotron_col")
+            vec_service = VectorService(collection_name="test_multi_doc_nemotron_col")
+        except Exception:
+            pass
+
         chunks_a = [{
             "chunk_id": "doc_a_1",
             "text": "Apples are delicious red fruits.",
@@ -84,7 +90,6 @@ class TestVectorStoreAndMultiplePDFs:
         
         query_vec = emb_service.embed_text("fruits and apples")
         
-        # Filter strictly by doc_b (should return nothing or only doc_b)
         results = vec_service.search_similar(query_vec, top_k=2, doc_name="doc_b.pdf")
         if results:
             assert all(r["doc_name"] == "doc_b.pdf" for r in results)

@@ -74,7 +74,7 @@ Traditional AI models answer questions from memory like taking a **closed-book e
 * **Python 3.10+**
 * **FastAPI:** High-performance async REST API framework.
 * **PyMuPDF (`pymupdf`):** Ultra-fast PDF page-by-page text parsing.
-* **Sentence-Transformers (`all-MiniLM-L6-v2`):** Local 384-dimensional dense semantic embeddings.
+* **NVIDIA Nemotron-3-Embed-1B:** 2048-dimensional high-capacity cloud embeddings on NVIDIA NIM API (with local `all-MiniLM-L6-v2` fallback).
 * **ChromaDB:** Persistent on-disk vector database.
 * **Meta LLaMA 3.1 70B (NVIDIA NIM / OpenAI-compatible API):** LLM generation engine.
 * **Pydantic:** Strict schema request/response validation.
