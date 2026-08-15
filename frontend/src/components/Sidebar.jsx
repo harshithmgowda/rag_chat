@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { FileText, UploadCloud, CheckCircle2, AlertCircle, Database, Layers, Sparkles, Plus } from 'lucide-react';
+import { FileText, Upload, Check, AlertCircle, Database, Search, X, Layers } from 'lucide-react';
 import { uploadPDF } from '../services/api';
 
 export default function Sidebar({ documents, selectedDoc, onSelectDoc, onUploadSuccess, healthInfo }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState(null); // { type: 'success' | 'error', text: '' }
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef(null);
 
   const handleDragOver = (e) => {
@@ -33,7 +34,7 @@ export default function Sidebar({ documents, selectedDoc, onSelectDoc, onUploadS
 
   const processFileUpload = async (file) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setUploadStatus({ type: 'error', text: 'Please upload a valid .pdf file!' });
+      setUploadStatus({ type: 'error', text: 'Only PDF documents are supported.' });
       return;
     }
 
@@ -44,13 +45,13 @@ export default function Sidebar({ documents, selectedDoc, onSelectDoc, onUploadS
       const data = await uploadPDF(file);
       setUploadStatus({
         type: 'success',
-        text: `Indexed ${data.total_pages} pages (${data.total_chunks} chunks)!`
+        text: `Indexed ${data.total_pages} pages (${data.total_chunks} chunks)`
       });
       if (onUploadSuccess) onUploadSuccess(data.filename);
     } catch (err) {
       setUploadStatus({
         type: 'error',
-        text: err.message || 'Failed to upload PDF'
+        text: err.message || 'Upload failed'
       });
     } finally {
       setIsUploading(false);
@@ -58,27 +59,33 @@ export default function Sidebar({ documents, selectedDoc, onSelectDoc, onUploadS
     }
   };
 
+  const filteredDocs = documents.filter(doc => 
+    doc.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <aside className="sidebar">
-      {/* Header / Logo */}
-      <div className="sidebar-header">
-        <div className="logo-badge">
-          <Sparkles size={20} color="#fff" />
-        </div>
-        <div className="logo-text">
-          <h1>PDF RAG Chatbot</h1>
-          <p>Meta LLaMA 3.1 • ChromaDB</p>
+      {/* Top Header */}
+      <div className="sidebar-top">
+        <div className="brand-heading">
+          <div className="brand-icon-box">
+            <FileText size={16} />
+          </div>
+          <div>
+            <div className="brand-title">RAG Document Studio</div>
+            <div className="brand-subtitle">FastAPI • ChromaDB • LLaMA 3.1</div>
+          </div>
         </div>
       </div>
 
-      <div className="sidebar-content">
+      <div className="sidebar-body">
         {/* Upload Zone */}
         <div>
-          <h3 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Upload Any PDF
-          </h3>
+          <div className="section-label">
+            <span>Import Document</span>
+          </div>
           <div
-            className={`dropzone ${isDragging ? 'active' : ''}`}
+            className={`clean-dropzone ${isDragging ? 'dragging' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -91,97 +98,110 @@ export default function Sidebar({ documents, selectedDoc, onSelectDoc, onUploadS
               accept=".pdf"
               style={{ display: 'none' }}
             />
-            <div className="dropzone-icon">
+            <div className="dropzone-upload-icon">
               {isUploading ? (
-                <div className="animate-spin" style={{ width: 24, height: 24, border: '3px solid var(--accent-primary)', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                <div style={{ width: 14, height: 14, border: '2px solid #a1a1aa', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               ) : (
-                <UploadCloud size={24} />
+                <Upload size={16} />
               )}
             </div>
-            <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {isUploading ? 'Ingesting PDF...' : 'Drop ANY PDF here'}
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-              or click to browse from disk
-            </p>
+            <div>
+              <div className="dropzone-text-main">
+                {isUploading ? 'Indexing PDF...' : 'Upload PDF Document'}
+              </div>
+              <div className="dropzone-text-sub">Drag & drop or click to browse</div>
+            </div>
           </div>
 
-          {/* Upload Status Banner */}
+          {/* Status message */}
           {uploadStatus && (
             <div
               style={{
-                marginTop: 10,
-                padding: '8px 12px',
+                marginTop: 8,
+                padding: '6px 10px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '0.8rem',
+                fontSize: '0.74rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                background: uploadStatus.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-                color: uploadStatus.type === 'success' ? 'var(--accent-emerald)' : 'var(--accent-rose)',
-                border: `1px solid ${uploadStatus.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`
+                gap: 6,
+                background: uploadStatus.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
+                color: uploadStatus.type === 'success' ? 'var(--brand-emerald)' : 'var(--brand-rose)',
+                border: `1px solid ${uploadStatus.type === 'success' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(244, 63, 94, 0.25)'}`
               }}
             >
-              {uploadStatus.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              {uploadStatus.type === 'success' ? <Check size={12} /> : <AlertCircle size={12} />}
               <span>{uploadStatus.text}</span>
             </div>
           )}
         </div>
 
-        {/* Documents List */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Indexed Documents ({documents.length})
-            </h3>
+        {/* Document List */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div className="section-label">
+            <span>Documents ({documents.length})</span>
             {selectedDoc && (
               <button
                 onClick={() => onSelectDoc(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.75rem', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '0.7rem', cursor: 'pointer' }}
               >
-                Search All
+                Reset Filter
               </button>
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
-            {documents.length === 0 ? (
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: 8 }}>
-                No PDFs uploaded yet. Drop a PDF above!
-              </p>
+          {/* Search bar if multiple documents */}
+          {documents.length > 2 && (
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '5px 8px', marginBottom: 8 }}>
+              <Search size={12} color="var(--text-muted)" style={{ marginRight: 6 }} />
+              <input
+                type="text"
+                placeholder="Filter files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '0.75rem', width: '100%' }}
+              />
+              {searchQuery && (
+                <X size={12} color="var(--text-muted)" onClick={() => setSearchQuery('')} style={{ cursor: 'pointer' }} />
+              )}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', flex: 1 }}>
+            {filteredDocs.length === 0 ? (
+              <div style={{ padding: '12px 8px', fontSize: '0.76rem', color: 'var(--text-faint)', fontStyle: 'italic', textAlign: 'center' }}>
+                {documents.length === 0 ? 'No documents indexed' : 'No matching files'}
+              </div>
             ) : (
-              documents.map((doc) => (
+              filteredDocs.map((doc) => (
                 <div
                   key={doc}
-                  className={`doc-card ${selectedDoc === doc ? 'selected' : ''}`}
+                  className={`doc-item ${selectedDoc === doc ? 'active' : ''}`}
                   onClick={() => onSelectDoc(doc === selectedDoc ? null : doc)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-                    <FileText size={18} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {doc}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                    <FileText size={14} color={selectedDoc === doc ? '#ffffff' : 'var(--text-muted)'} style={{ flexShrink: 0 }} />
+                    <span className="doc-item-title">{doc}</span>
                   </div>
                   {selectedDoc === doc && (
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)' }} />
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.1)', padding: '1px 5px', borderRadius: 3 }}>Active</span>
                   )}
                 </div>
               ))
             )}
           </div>
         </div>
+      </div>
 
-        {/* System Stats Footer */}
-        <div style={{ padding: '12px 14px', background: 'var(--bg-glass-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Database size={14} color="var(--accent-cyan)" />
-              ChromaDB Storage:
-            </span>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              {healthInfo?.total_chunks_indexed || 0} Chunks
-            </span>
+      {/* Footer Info */}
+      <div className="sidebar-footer">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="status-pill">
+            <span className="status-dot-green" />
+            <span>Vector DB Connected</span>
           </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            {healthInfo?.total_chunks_indexed || 0} chunks
+          </span>
         </div>
       </div>
     </aside>

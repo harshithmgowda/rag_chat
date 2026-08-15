@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, BookOpen, Sparkles, HelpCircle, FileCheck } from 'lucide-react';
+import { ArrowUp, Copy, Check, Trash2, FileText, Bookmark, CornerDownLeft } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 export default function ChatArea({
   messages,
   onSendMessage,
   isLoading,
   selectedDoc,
-  healthInfo
+  onClearChat
 }) {
   const [input, setInput] = useState('');
+  const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -19,119 +22,148 @@ export default function ChatArea({
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleSend = () => {
     if (!input.trim() || isLoading) return;
     onSendMessage(input.trim());
     setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
-  const sampleSuggestions = [
-    "What are the process states in an operating system?",
-    "What is the security policy regarding leaked credentials?",
-    "Why do LLMs hallucinate and how does RAG help?",
-    "Explain virtual memory and paging in simple terms."
+  const copyToClipboard = (text, index) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleTextareaInput = (e) => {
+    setInput(e.target.value);
+    // Auto-adjust height
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+  };
+
+  const suggestedPrompts = [
+    { title: "Operating System States", desc: "List and explain the 5 process execution states." },
+    { title: "API Security Policies", desc: "What is the policy for handling leaked credentials?" },
+    { title: "Virtual Memory & Paging", desc: "How does the OS translate virtual pages to physical frames?" },
+    { title: "Document Summary", desc: "Provide an executive summary of the uploaded document." }
   ];
 
   return (
-    <main className="main-chat">
-      {/* Top Header */}
-      <header className="chat-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 600 }}>
-              {selectedDoc ? `Filtering: ${selectedDoc}` : 'Searching All Uploaded Documents'}
-            </h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              LLM: Meta LLaMA 3.1 70B • Context-Grounded Search
-            </p>
+    <main className="main-viewport">
+      {/* Top Navbar */}
+      <header className="top-navbar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="active-filter-badge">
+            <FileText size={12} />
+            <span>{selectedDoc ? selectedDoc : 'All Indexed Documents'}</span>
           </div>
+          <span style={{ fontSize: '0.74rem', color: 'var(--text-faint)' }}>•</span>
+          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Meta LLaMA 3.1 70B</span>
         </div>
 
-        <div className="header-status">
-          <span className="status-dot" />
-          <span>API Connected</span>
-        </div>
+        {messages.length > 0 && (
+          <button onClick={onClearChat} className="clear-btn" title="Clear chat history">
+            <Trash2 size={13} />
+            <span>Clear</span>
+          </button>
+        )}
       </header>
 
-      {/* Messages Stream */}
-      <div className="messages-container">
+      {/* Message Stream */}
+      <div className="chat-scroll-area">
         {messages.length === 0 ? (
-          <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 500, padding: 20 }}>
-            <div
-              style={{
-                width: 60,
-                height: 60,
-                margin: '0 auto 16px',
-                borderRadius: 'var(--radius-lg)',
-                background: 'var(--accent-gradient)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'var(--shadow-glow)'
-              }}
-            >
-              <Sparkles size={32} color="#fff" />
+          <div className="empty-state">
+            <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: '#1c1c22', border: '1px solid var(--border-medium)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#ffffff' }}>
+              <FileText size={18} />
             </div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: 8 }}>
-              Ask Questions About Any PDF
-            </h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Upload any PDF document using the sidebar, then ask questions. Answers are generated
-              strictly from the text with exact page citations.
+            <h1 className="empty-state-title">Ask anything about your documents</h1>
+            <p className="empty-state-desc">
+              Upload any PDF document on the left. The system indexes text chunks and provides
+              strictly grounded answers with exact page citations.
             </p>
+
+            <div className="prompt-grid">
+              {suggestedPrompts.map((p, idx) => (
+                <div
+                  key={idx}
+                  className="prompt-card"
+                  onClick={() => onSendMessage(p.desc)}
+                >
+                  <div className="prompt-card-title">{p.title}</div>
+                  <div className="prompt-card-sub">{p.desc}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`message-bubble ${msg.sender === 'user' ? 'message-user' : 'message-bot'}`}
-            >
-              <div className={`message-avatar ${msg.sender === 'user' ? 'avatar-user' : 'avatar-bot'}`}>
-                {msg.sender === 'user' ? <User size={18} /> : <Bot size={18} />}
-              </div>
-
-              <div className="message-body">
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: msg.sender === 'user' ? 'var(--accent-cyan)' : 'var(--accent-secondary)' }}>
-                    {msg.sender === 'user' ? 'You' : 'PDF Assistant (LLaMA 3.1)'}
-                  </span>
-                </div>
-
-                <div className="message-text">
-                  {msg.text}
-                </div>
-
-                {/* Cited Sources & Page Numbers */}
-                {msg.sources && msg.sources.length > 0 && (
-                  <div className="sources-container">
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <BookOpen size={14} color="var(--accent-cyan)" /> Sources:
-                    </span>
-                    {msg.sources.map((src, i) => (
-                      <span key={i} className="source-badge">
-                        <FileCheck size={12} />
-                        {src}
-                      </span>
-                    ))}
+            <div key={index} className="message-wrapper">
+              {msg.sender === 'user' ? (
+                <div className="user-row">
+                  <div className="user-bubble">
+                    {msg.text}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="bot-row">
+                  <div className="bot-header">
+                    <span>ASSISTANT</span>
+                    <button
+                      onClick={() => copyToClipboard(msg.text, index)}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem' }}
+                    >
+                      {copiedIndex === index ? <Check size={12} color="var(--brand-emerald)" /> : <Copy size={12} />}
+                      <span>{copiedIndex === index ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+
+                  <div className="bot-content">
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+
+                    {/* Sources / Citations */}
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className="citations-box">
+                        <div className="citations-header">
+                          <Bookmark size={11} />
+                          <span>Cited Sources</span>
+                        </div>
+                        <div className="citation-chips">
+                          {msg.sources.map((src, i) => (
+                            <span key={i} className="citation-chip">
+                              {src}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}
 
-        {/* Loading Bubble */}
+        {/* Loading Indicator */}
         {isLoading && (
-          <div className="message-bubble message-bot">
-            <div className="message-avatar avatar-bot">
-              <Bot size={18} />
-            </div>
-            <div className="message-body" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--accent-secondary)', borderTopColor: 'transparent', borderRadius: '50%' }} />
-              <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                Searching vector database & synthesizing answer with LLaMA 3.1...
-              </span>
+          <div className="message-wrapper">
+            <div className="bot-row">
+              <div className="bot-header">
+                <span>ASSISTANT</span>
+              </div>
+              <div className="bot-content" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                <div style={{ width: 12, height: 12, border: '2px solid var(--text-muted)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span>Searching vector store & generating response...</span>
+              </div>
             </div>
           </div>
         )}
@@ -139,40 +171,31 @@ export default function ChatArea({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Section */}
-      <div className="chat-input-wrapper">
-        {/* Suggestion Pills */}
-        {messages.length === 0 && (
-          <div className="suggestion-pills">
-            {sampleSuggestions.map((s, idx) => (
-              <button
-                key={idx}
-                className="pill-btn"
-                onClick={() => onSendMessage(s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="input-box">
-          <input
-            type="text"
-            placeholder={
-              selectedDoc
-                ? `Ask anything about ${selectedDoc}...`
-                : "Ask anything about your uploaded documents..."
-            }
+      {/* Input Dock */}
+      <div className="input-dock">
+        <div className="input-container">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            className="chat-input"
+            placeholder={selectedDoc ? `Ask about ${selectedDoc}...` : "Ask any question about your documents..."}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleTextareaInput}
+            onKeyDown={handleKeyDown}
             disabled={isLoading}
           />
-          <button type="submit" className="send-btn" disabled={!input.trim() || isLoading}>
-            <Send size={16} />
-            <span>Send</span>
+          <button
+            onClick={handleSend}
+            className="submit-btn"
+            disabled={!input.trim() || isLoading}
+            title="Send message"
+          >
+            <ArrowUp size={14} />
           </button>
-        </form>
+        </div>
+        <div className="input-hint">
+          <span>Press <strong>Enter</strong> to send • <strong>Shift + Enter</strong> for new line</span>
+        </div>
       </div>
     </main>
   );

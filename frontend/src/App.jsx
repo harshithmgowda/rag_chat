@@ -10,7 +10,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [healthInfo, setHealthInfo] = useState(null);
 
-  // Load initial documents and system health
   const refreshData = async () => {
     try {
       const docData = await fetchDocuments();
@@ -25,7 +24,7 @@ export default function App() {
 
   useEffect(() => {
     refreshData();
-    const interval = setInterval(refreshData, 10000); // Poll health & docs every 10s
+    const interval = setInterval(refreshData, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -36,14 +35,17 @@ export default function App() {
       ...prev,
       {
         sender: 'bot',
-        text: `📄 Successfully uploaded and indexed "${newDocName}" into ChromaDB! You can now ask any question about it.`,
+        text: `Indexed **${newDocName}** successfully. You can now ask questions about this document.`,
         sources: []
       }
     ]);
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+  };
+
   const handleSendMessage = async (question) => {
-    // Append user message immediately
     setMessages((prev) => [
       ...prev,
       { sender: 'user', text: question }
@@ -65,7 +67,7 @@ export default function App() {
         ...prev,
         {
           sender: 'bot',
-          text: `❌ Error communicating with backend: ${err.message}`,
+          text: `⚠️ **Error communicating with backend**: ${err.message}`,
           sources: []
         }
       ]);
@@ -76,7 +78,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-layout">
       <Sidebar
         documents={documents}
         selectedDoc={selectedDoc}
@@ -89,7 +91,7 @@ export default function App() {
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
         selectedDoc={selectedDoc}
-        healthInfo={healthInfo}
+        onClearChat={handleClearChat}
       />
     </div>
   );
