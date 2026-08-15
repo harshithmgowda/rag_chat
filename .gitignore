@@ -1,0 +1,41 @@
+# Python Virtual Environments
+venv/
+backend/venv/
+.venv/
+env/
+ENV/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Environment Variables & Secrets (CRITICAL: NEVER COMMIT KEYS)
+.env
+.env.local
+.env.*.local
+
+# Database & Runtime Storage
+data/chroma/*
+!data/chroma/.gitkeep
+data/*
+!data/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# Node / Frontend Build
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+dist/
+
+# OS / Editor Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
