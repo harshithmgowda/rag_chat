@@ -4,7 +4,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorStore-orange.svg)](https://www.trychroma.com/)
 [![React](https://img.shields.io/badge/React-18+-61DAFB.svg)](https://reactjs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A production-grade, full-stack **Retrieval-Augmented Generation (RAG)** web application and CLI chatbot that lets you upload **ANY multi-page PDF**, indexes it into a local vector database, and answers user questions with **100% factual grounding and exact page citations** using **Meta LLaMA 3.1 70B** on **NVIDIA NIM API** and **ChromaDB**.
 
